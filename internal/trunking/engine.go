@@ -57,6 +57,11 @@ type Engine struct {
 	encModes   map[string]EncryptedMode
 	encFollows map[string]time.Duration
 
+	// ignoreData marks systems whose data-call grants never get a voice
+	// SDR (trunking.systems[].ignore_data_calls). Read-only after
+	// NewEngine. Ported from N9KOP/sdrtrunk's "Ignore data calls".
+	ignoreData map[string]bool
+
 	// configuredKeys maps a system name to the set of encryption key IDs
 	// the operator supplied for it (trunking.systems[].encryption_keys).
 	// A call whose KeyID is in its system's set is "decryptable" — the
@@ -199,6 +204,11 @@ type EngineOptions struct {
 	// IDs. Calls whose KeyID matches are exempt from the encrypted-call
 	// policy (always followed). nil disables the exemption. Issue #711.
 	ConfiguredKeys map[string]map[uint16]bool
+	// IgnoreDataCalls maps system name -> true when data-call grants
+	// (DataCall) on that system are dropped before a voice SDR is
+	// allocated. Emergency grants still go through. A system absent from
+	// the map follows data calls (the GopherTrunk default).
+	IgnoreDataCalls map[string]bool
 	// SplitPerTransmission mirrors the voice composer's per-transmission
 	// grouping (trunking.voice_call_grouping != "conversation"). When set, the
 	// engine emits a KindCallSegment on a TETRA talker change so each over is
@@ -261,6 +271,7 @@ func NewEngine(opts EngineOptions) (*Engine, error) {
 		encModes:       opts.EncryptedModes,
 		encFollows:     opts.EncryptedFollows,
 		configuredKeys: opts.ConfiguredKeys,
+		ignoreData:     opts.IgnoreDataCalls,
 		calls:          make(map[string]*ActiveCall),
 		synthetic:      make(map[string]*ActiveCall),
 		observed:       make(map[string]*ActiveCall),
@@ -748,6 +759,14 @@ func (e *Engine) HandleGrant(g Grant) {
 		!e.keyConfigured(g.System, g.KeyID) && !e.systemHasKeys(g.System) {
 		e.log.Debug("dropping encrypted grant (encrypted_calls mode: ignore)",
 			"grant", g.String())
+		return
+	}
+
+	// Data-call policy (trunking.systems[].ignore_data_calls): a data grant
+	// carries no audio, so on a system set to ignore them don't tie up a
+	// voice SDR. Emergency grants bypass, like the policies above.
+	if g.DataCall && !g.Emergency && e.ignoreData[g.System] {
+		e.log.Debug("dropping data grant (ignore_data_calls)", "grant", g.String())
 		return
 	}
 

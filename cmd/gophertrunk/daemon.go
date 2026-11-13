@@ -2272,6 +2272,20 @@ func (d *Daemon) buildEngine(cfg config.Config, log *slog.Logger) error {
 		return out
 	}
 
+	ignoreDataBySystem := func(systems []config.SystemConfig) map[string]bool {
+		var out map[string]bool
+		for _, s := range systems {
+			if !s.IgnoreDataCalls {
+				continue
+			}
+			if out == nil {
+				out = make(map[string]bool)
+			}
+			out[s.Name] = true
+		}
+		return out
+	}
+
 	engine, err := trunking.NewEngine(trunking.EngineOptions{
 		Bus:              d.bus,
 		Log:              log,
@@ -2282,6 +2296,7 @@ func (d *Daemon) buildEngine(cfg config.Config, log *slog.Logger) error {
 		EncryptedModes:   encryptedModesBySystem(cfg.Trunking.Systems),
 		EncryptedFollows: encryptedFollowsBySystem(cfg.Trunking.Systems),
 		ConfiguredKeys:   configuredKeysBySystem(d.keySystems),
+		IgnoreDataCalls:  ignoreDataBySystem(cfg.Trunking.Systems),
 		// Same per-transmission grouping the voice composer uses (below): lets the
 		// engine roll a TETRA recording on a talker change so each over is
 		// attributed to its own source.
