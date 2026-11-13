@@ -626,7 +626,7 @@ func thinlinePatchString(group uint32, members []uint32) string {
 }
 
 func thinlineStrip(u string) string {
-	s := strings.TrimSpace(u)
+	s := strings.TrimRight(strings.TrimSpace(u), "/")
 	s = strings.TrimSuffix(s, thinlineUploadPath)
 	return strings.TrimRight(s, "/")
 }
