@@ -52,6 +52,44 @@ func buildBroadcastManager(cfg config.BroadcastConfig, normCfg config.NormalizeC
 		}
 		backends = append(backends, b)
 	}
+	for _, f := range cfg.Thinline {
+		if !f.Enabled {
+			continue
+		}
+		name := f.Name
+		if name == "" {
+			name = "thinline"
+		}
+		b, err := broadcast.NewRdioScanner(broadcast.RdioScannerConfig{
+			Name:     name,
+			URL:      f.URL,
+			APIKey:   f.APIKey,
+			SystemID: f.SystemID,
+			Systems:  f.Systems,
+			Loc:      loc,
+		}, nil)
+		if err != nil {
+			return nil, err
+		}
+		backends = append(backends, b)
+	}
+	for _, f := range cfg.ThinlineCore {
+		if !f.Enabled {
+			continue
+		}
+		b, err := broadcast.NewThinlineCore(broadcast.ThinlineCoreConfig{
+			Name:     f.Name,
+			URL:      f.URL,
+			APIKey:   f.APIKey,
+			SystemID: f.SystemID,
+			Systems:  f.Systems,
+			Log:      log,
+		})
+		if err != nil {
+			return nil, err
+		}
+		backends = append(backends, b)
+	}
 	for _, f := range cfg.OpenMHz {
 		if !f.Enabled {
 			continue
