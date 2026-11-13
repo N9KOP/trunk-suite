@@ -211,6 +211,7 @@ var fieldMetas = map[string]FieldMeta{
 	"SystemConfig.DMRBandPlan":     {Label: "DMR band plan", Help: "LCN→frequency map REQUIRED for DMR Tier III voice grants. Pick linear (grid) or table (explicit list). DMR only."},
 	"SystemConfig.NXDNBandPlan":    {Label: "NXDN band plan", Help: "Channel→frequency map REQUIRED for NXDN voice grants (VCALL_ASSGN references a channel number). Pick linear (grid) or table (explicit list). NXDN only."},
 	"SystemConfig.EncryptionKeys":  {Help: "Operator-held decryption keys: DMR RC4 'Enhanced Privacy', P25 ADP / DES / AES, the NXDN 15-bit scrambler. No key recovery is performed."},
+	"SystemConfig.IgnoreDataCalls": {Help: "Don't give a voice SDR to data-call grants on this system. Emergency grants are still followed."},
 	"SystemConfig.EncryptedCalls":  {Help: "How scarce voice SDRs are allocated to encrypted calls on this system, so encrypted traffic can't starve clear calls (issue #711)."},
 	// SystemConfig advanced protocol knobs (edited under the Advanced group).
 	"SystemConfig.TETRAColourCode":         {Label: "TETRA colour code", Help: "30-bit extended colour code seeding the TETRA descrambler. Set to the cell's colour code. TETRA only."},

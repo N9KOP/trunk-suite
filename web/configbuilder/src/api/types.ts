@@ -423,6 +423,7 @@ export interface SystemConfig {
   EncryptionKeys?: EncryptionKey[] | null;
   EncryptionKeyFiles?: EncryptionKeyFile[] | null;
   EncryptedCalls?: EncryptedCallsConfig;
+  IgnoreDataCalls?: boolean;
   // Long-tail protocol decoder knobs (TETRA*, LTR*, P25Phase1/2*, NXDN*,
   // EDACS*, MPT1327*, Motorola*, DStarFEC, DMRInterleavedVoice) round-trip
   // through this index signature and are edited via AdvancedJSON.

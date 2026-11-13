@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Section } from "../components/Section";
 import {
+  BoolField,
   Fieldset,
   FreqListField,
   HzField,
@@ -439,6 +440,12 @@ function SystemEditor(props: { sys: SystemConfig; onChange: (next: SystemConfig)
         <EncryptedCallsField
           value={sys.EncryptedCalls}
           onChange={(x) => onChange({ ...sys, EncryptedCalls: x })}
+        />
+        <BoolField
+          label="Ignore data calls"
+          value={sys.IgnoreDataCalls ?? false}
+          onChange={(v) => onChange({ ...sys, IgnoreDataCalls: v })}
+          help="Don't give a voice SDR to data-call grants. Emergency grants are still followed."
         />
       </Fieldset>
 

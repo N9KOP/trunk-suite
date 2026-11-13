@@ -1941,6 +1941,11 @@ type SystemConfig struct {
 	// "follow" / "ignore" on another. Empty mode = "follow" (the
 	// pre-issue-711 behaviour). Issue #711.
 	EncryptedCalls EncryptedCallsConfig `yaml:"encrypted_calls"`
+
+	// IgnoreDataCalls drops data-call grants on this system before a
+	// voice SDR is allocated, so packet data can't tie up a voice tuner.
+	// Emergency grants are still followed. Default false (follow).
+	IgnoreDataCalls bool `yaml:"ignore_data_calls"`
 }
 
 // P25BandPlanEntryConfig is one operator-supplied IDEN_UP slot seed
