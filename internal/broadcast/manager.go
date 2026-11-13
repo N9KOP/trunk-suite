@@ -130,7 +130,19 @@ func (m *Manager) Run(ctx context.Context) error {
 			if !ok {
 				return nil
 			}
-			if ev.Kind != events.KindCallComplete {
+			switch ev.Kind {
+			case events.KindCallStart:
+				if cs, ok := ev.Payload.(trunking.CallStart); ok {
+					m.observe(cs.Grant.System, func(o CallObserver) { o.CallStarted(cs) })
+				}
+				continue
+			case events.KindCallEnd:
+				if ce, ok := ev.Payload.(trunking.CallEnd); ok {
+					m.observe(ce.Grant.System, func(o CallObserver) { o.CallEnded(ce) })
+				}
+				continue
+			case events.KindCallComplete:
+			default:
 				continue
 			}
 			cc, ok := ev.Payload.(trunking.CallComplete)
@@ -138,6 +150,16 @@ func (m *Manager) Run(ctx context.Context) error {
 				continue
 			}
 			m.dispatch(cc)
+		}
+	}
+}
+
+// observe hands a call start/end to every backend that watches calls live
+// and accepts the system.
+func (m *Manager) observe(system string, fn func(CallObserver)) {
+	for _, b := range m.backends {
+		if o, ok := b.(CallObserver); ok && b.Accepts(system) {
+			fn(o)
 		}
 	}
 }

@@ -1810,6 +1810,25 @@ broadcast:
   #     api_key: "YOUR_RDIOSCANNER_API_KEY"
   #     system_id: 1
 
+  # Thinline Radio takes the RdioScanner call-upload API.
+  # thinline:
+  #   - enabled: true
+  #     name: "thinline"
+  #     url: "https://thinline.example.org"
+  #     api_key: "YOUR_THINLINE_UPLOAD_KEY"
+  #     system_id: 1
+
+  # Thinline Radio Core: calls are reported over a websocket as they start
+  # and finish, held on this site, and uploaded only when Thinline Radio
+  # asks for this site's copy. If the server is unreachable, held calls
+  # are uploaded directly.
+  # thinline_core:
+  #   - enabled: true
+  #     name: "thinline-core"
+  #     url: "https://thinline.example.org"
+  #     api_key: "YOUR_THINLINE_SITE_CONTROL_KEY"
+  #     system_id: 1
+
   # openmhz:
   #   - enabled: true
   #     name: "openmhz-metro"
