@@ -422,6 +422,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
+          # A manual run creates the tag; pin it to the commit that was
+          # built, not the default branch.
+          target_commitish: ${{ github.sha }}
           name: trunk-suite ${{ steps.version.outputs.version }}
           generate_release_notes: true
           prerelease: ${{ steps.version.outputs.prerelease == 'true' }}
