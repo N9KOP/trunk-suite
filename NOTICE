@@ -1,0 +1,10 @@
+trunk-suite
+Copyright 2026 Michael Chambers (N9KOP)
+
+This product is a derivative of GopherTrunk by Matt Cheramie, licensed under
+the Apache License, Version 2.0 (see LICENSE).
+
+Features ported from N9KOP/sdrtrunk were re-implemented in Go from the
+fork's own additions (Thinline Radio, tuner planning, traffic-channel
+filtering, diagnostics). No code from the upstream SDRTrunk project
+(DSheirer/sdrtrunk, GPL-3.0) is included.

@@ -1,3 +1,8 @@
+> **trunk-suite** is N9KOP's build of [GopherTrunk](https://github.com/MattCheramie/GopherTrunk), with the
+> features from [N9KOP/sdrtrunk](https://github.com/N9KOP/sdrtrunk) ported to Go: Thinline Radio streaming,
+> tuner planning, P25 traffic-channel filtering, channel signal levels and decode diagnostics.
+> See [docs/trunk-suite.md](docs/trunk-suite.md) for the port status. Upstream README follows.
+
 <p align="center">
   <img src="docs/assets/gophertrunk-logo.png" alt="GopherTrunk logo" width="220">
 </p>
