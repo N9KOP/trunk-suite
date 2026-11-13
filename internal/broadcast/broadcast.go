@@ -90,6 +90,13 @@ type Call struct {
 	EndedAt       time.Time
 	AudioPath     string // recording on disk written by the recorder (.wav or .flac)
 	SampleRate    int
+	// DeviceSerial, CallStartedAt and Segment tie a recording back to the
+	// call it came from (the voice SDR that followed it, the call's own
+	// start, and which per-over file this is). Backends that report calls
+	// as they start (Thinline Radio Core) match on them.
+	DeviceSerial  string
+	CallStartedAt time.Time
+	Segment       int
 
 	// normalize, when Enabled, loudness-normalizes the audio in memory
 	// before MP3 encoding (the on-disk WAV is left pristine). Set by the
@@ -192,6 +199,9 @@ func callFromEvent(cc trunking.CallComplete) *Call {
 		EndedAt:       cc.EndedAt,
 		AudioPath:     cc.AudioPath,
 		SampleRate:    int(cc.SampleRate),
+		DeviceSerial:  cc.DeviceSerial,
+		CallStartedAt: cc.CallStartedAt,
+		Segment:       cc.Segment,
 	}
 	if cc.Talkgroup != nil {
 		c.TalkgroupLabel = cc.Talkgroup.AlphaTag
@@ -220,6 +230,14 @@ type Backend interface {
 	Accepts(systemName string) bool
 	// Send delivers the call. A non-nil error triggers a retry.
 	Send(ctx context.Context, c *Call) error
+}
+
+// CallObserver is implemented by backends that want to hear about calls
+// as they start and end, not only once the recording is finished. The
+// Manager calls these from its event loop, so they must not block.
+type CallObserver interface {
+	CallStarted(cs trunking.CallStart)
+	CallEnded(ce trunking.CallEnd)
 }
 
 // systemFilter restricts a backend to a set of trunking-system names.

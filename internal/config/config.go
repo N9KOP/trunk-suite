@@ -411,6 +411,12 @@ type BroadcastConfig struct {
 	// zero or more feeds. A feed with enabled=false is parsed but skipped.
 	Broadcastify []BroadcastifyFeedConfig `yaml:"broadcastify"`
 	RdioScanner  []RdioScannerFeedConfig  `yaml:"rdioscanner"`
+	// Thinline lists Thinline Radio call-upload feeds. Thinline Radio
+	// takes the RdioScanner call-upload API, so these use the same fields.
+	Thinline []RdioScannerFeedConfig `yaml:"thinline"`
+	// ThinlineCore lists Thinline Radio Core streams: the site holds each
+	// recording and uploads it only when Thinline Radio asks for it.
+	ThinlineCore []ThinlineCoreFeedConfig `yaml:"thinline_core"`
 	OpenMHz      []OpenMHzFeedConfig      `yaml:"openmhz"`
 	Icecast      []IcecastFeedConfig      `yaml:"icecast"`
 	Webhook      []WebhookFeedConfig      `yaml:"webhook"`
@@ -435,6 +441,18 @@ type RdioScannerFeedConfig struct {
 	Enabled  bool     `yaml:"enabled"`
 	Name     string   `yaml:"name"`
 	URL      string   `yaml:"url"`
+	APIKey   string   `yaml:"api_key"`
+	SystemID int      `yaml:"system_id"`
+	Systems  []string `yaml:"systems"`
+}
+
+// ThinlineCoreFeedConfig is one Thinline Radio Core stream.
+type ThinlineCoreFeedConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	Name    string `yaml:"name"`
+	// URL is the Thinline Radio server (http:// or https://).
+	URL string `yaml:"url"`
+	// APIKey is the site control key, not an upload key.
 	APIKey   string   `yaml:"api_key"`
 	SystemID int      `yaml:"system_id"`
 	Systems  []string `yaml:"systems"`

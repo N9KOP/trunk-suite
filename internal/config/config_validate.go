@@ -1410,6 +1410,34 @@ func (b BroadcastConfig) validate() error {
 			return fmt.Errorf("broadcast.rdioscanner[%d]: system_id required", i)
 		}
 	}
+	for i, f := range b.Thinline {
+		if !f.Enabled {
+			continue
+		}
+		if f.URL == "" {
+			return fmt.Errorf("broadcast.thinline[%d]: url required", i)
+		}
+		if f.APIKey == "" {
+			return fmt.Errorf("broadcast.thinline[%d]: api_key required", i)
+		}
+		if f.SystemID == 0 {
+			return fmt.Errorf("broadcast.thinline[%d]: system_id required", i)
+		}
+	}
+	for i, f := range b.ThinlineCore {
+		if !f.Enabled {
+			continue
+		}
+		if !strings.HasPrefix(f.URL, "http://") && !strings.HasPrefix(f.URL, "https://") {
+			return fmt.Errorf("broadcast.thinline_core[%d]: url must start with http:// or https://", i)
+		}
+		if f.APIKey == "" {
+			return fmt.Errorf("broadcast.thinline_core[%d]: api_key (site control key) required", i)
+		}
+		if f.SystemID == 0 {
+			return fmt.Errorf("broadcast.thinline_core[%d]: system_id required", i)
+		}
+	}
 	for i, f := range b.OpenMHz {
 		if !f.Enabled {
 			continue
