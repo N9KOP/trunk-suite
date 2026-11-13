@@ -10,6 +10,7 @@ import type {
   IcecastFeed,
   OpenMHzFeed,
   RdioScannerFeed,
+  ThinlineCoreFeed,
   WebhookFeed,
 } from "../api/types";
 
@@ -77,6 +78,52 @@ export function BroadcastSection() {
                 <TextField label="Name" value={f.Name} onChange={(v) => setF({ ...f, Name: v })} />
                 <TextField label="URL" value={f.URL} onChange={(v) => setF({ ...f, URL: v })} />
                 <TextField label="API key" value={f.APIKey} onChange={(v) => setF({ ...f, APIKey: v })} />
+                <NumberField label="System ID" value={f.SystemID} onChange={(v) => setF({ ...f, SystemID: v })} />
+                <TextField label="Systems" value={formatCommaList(f.Systems)} onChange={(v) => setF({ ...f, Systems: parseCommaList(v) })} help={SYSTEMS_HELP} />
+              </div>
+            </div>
+          )}
+        />
+      </Fieldset>
+
+      <Fieldset legend="Thinline Radio">
+        <ListEditor<RdioScannerFeed>
+          label="Feeds"
+          items={c.Thinline ?? null}
+          onChange={(x) => set({ ...c, Thinline: x })}
+          makeNew={() => ({ Enabled: true, Name: "", URL: "", APIKey: "", SystemID: 0, Systems: null })}
+          itemTitle={(f) => f.Name || "feed"}
+          emptyHint="No Thinline Radio feeds."
+          renderItem={(f, setF) => (
+            <div className="space-y-3">
+              <BoolField label="Enabled" value={f.Enabled} onChange={(v) => setF({ ...f, Enabled: v })} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <TextField label="Name" value={f.Name} onChange={(v) => setF({ ...f, Name: v })} />
+                <TextField label="URL" value={f.URL} onChange={(v) => setF({ ...f, URL: v })} />
+                <TextField label="API key" value={f.APIKey} onChange={(v) => setF({ ...f, APIKey: v })} />
+                <NumberField label="System ID" value={f.SystemID} onChange={(v) => setF({ ...f, SystemID: v })} />
+                <TextField label="Systems" value={formatCommaList(f.Systems)} onChange={(v) => setF({ ...f, Systems: parseCommaList(v) })} help={SYSTEMS_HELP} />
+              </div>
+            </div>
+          )}
+        />
+      </Fieldset>
+
+      <Fieldset legend="Thinline Radio Core">
+        <ListEditor<ThinlineCoreFeed>
+          label="Streams"
+          items={c.ThinlineCore ?? null}
+          onChange={(x) => set({ ...c, ThinlineCore: x })}
+          makeNew={() => ({ Enabled: true, Name: "", URL: "", APIKey: "", SystemID: 0, Systems: null })}
+          itemTitle={(f) => f.Name || "stream"}
+          emptyHint="No Thinline Radio Core streams. Each call is held here and uploaded only when Thinline Radio asks for it."
+          renderItem={(f, setF) => (
+            <div className="space-y-3">
+              <BoolField label="Enabled" value={f.Enabled} onChange={(v) => setF({ ...f, Enabled: v })} />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <TextField label="Name" value={f.Name} onChange={(v) => setF({ ...f, Name: v })} />
+                <TextField label="URL" value={f.URL} onChange={(v) => setF({ ...f, URL: v })} />
+                <TextField label="Site key" value={f.APIKey} onChange={(v) => setF({ ...f, APIKey: v })} help="The site control key, not an upload key." />
                 <NumberField label="System ID" value={f.SystemID} onChange={(v) => setF({ ...f, SystemID: v })} />
                 <TextField label="Systems" value={formatCommaList(f.Systems)} onChange={(v) => setF({ ...f, Systems: parseCommaList(v) })} help={SYSTEMS_HELP} />
               </div>

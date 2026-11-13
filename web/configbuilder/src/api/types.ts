@@ -528,6 +528,14 @@ export interface RdioScannerFeed {
   SystemID: number;
   Systems: string[] | null;
 }
+export interface ThinlineCoreFeed {
+  Enabled: boolean;
+  Name: string;
+  URL: string;
+  APIKey: string;
+  SystemID: number;
+  Systems: string[] | null;
+}
 export interface OpenMHzFeed {
   Enabled: boolean;
   Name: string;
@@ -566,6 +574,8 @@ export interface BroadcastConfig {
   Workers: number;
   Broadcastify: BroadcastifyFeed[] | null;
   RdioScanner: RdioScannerFeed[] | null;
+  Thinline?: RdioScannerFeed[] | null;
+  ThinlineCore?: ThinlineCoreFeed[] | null;
   OpenMHz: OpenMHzFeed[] | null;
   Icecast: IcecastFeed[] | null;
   Webhook: WebhookFeed[] | null;
