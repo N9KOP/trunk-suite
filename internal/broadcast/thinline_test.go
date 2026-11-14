@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -288,5 +289,34 @@ func TestThinlineSocketURL(t *testing.T) {
 	}
 	if !strings.HasPrefix(thinlinePatchString(1, nil), "[") {
 		t.Fatal("patch string must be bracketed")
+	}
+}
+
+func TestThinlineCoreWritesDedicatedLogFile(t *testing.T) {
+	f := &fakeThinline{t: t}
+	srv := httptest.NewServer(f.handler())
+	defer srv.Close()
+	path := t.TempDir() + "/logs/thinline_core.log"
+	b, err := NewThinlineCore(ThinlineCoreConfig{URL: srv.URL, APIKey: "SITEKEY", SystemID: 7, LogFile: path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	core := b.(*thinlineCore)
+	core.ensureConnected()
+	waitFor(t, func() bool { return len(f.framesOf("core.hello")) == 1 })
+	if err := b.Send(context.Background(), testCall(t)); err != nil {
+		t.Fatal(err)
+	}
+	waitFor(t, func() bool { return f.uploadCount() == 1 && core.HeldCount() == 0 })
+	core.Close()
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("core log not written: %v", err)
+	}
+	for _, want := range []string{"core starting", "websocket ready", "call ready", "upload requested", "upload ok", "core stopping"} {
+		if !strings.Contains(string(data), want) {
+			t.Errorf("core log missing %q:\n%s", want, data)
+		}
 	}
 }

@@ -535,6 +535,8 @@ export interface ThinlineCoreFeed {
   APIKey: string;
   SystemID: number;
   Systems: string[] | null;
+  LogFile?: string;
+  LogFileMaxSizeMB?: number;
 }
 export interface OpenMHzFeed {
   Enabled: boolean;

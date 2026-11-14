@@ -456,6 +456,10 @@ type ThinlineCoreFeedConfig struct {
 	APIKey   string   `yaml:"api_key"`
 	SystemID int      `yaml:"system_id"`
 	Systems  []string `yaml:"systems"`
+	// LogFile, when set, writes every Core event to its own file as well
+	// as the daemon log. It rotates at LogFileMaxSizeMB (default 16).
+	LogFile          string `yaml:"log_file"`
+	LogFileMaxSizeMB int    `yaml:"log_file_max_size_mb"`
 }
 
 // OpenMHzFeedConfig is one OpenMHz upload feed.
