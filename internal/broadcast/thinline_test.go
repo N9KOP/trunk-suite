@@ -308,7 +308,7 @@ func TestThinlineCoreWritesDedicatedLogFile(t *testing.T) {
 		t.Fatal(err)
 	}
 	waitFor(t, func() bool { return f.uploadCount() == 1 && core.HeldCount() == 0 })
-	b.Close()
+	core.Close()
 
 	data, err := os.ReadFile(path)
 	if err != nil {
