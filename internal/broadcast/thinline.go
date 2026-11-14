@@ -44,6 +44,7 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	gtlog "github.com/MattCheramie/GopherTrunk/internal/log"
 	"github.com/MattCheramie/GopherTrunk/internal/trunking"
 )
 
@@ -74,6 +75,12 @@ type ThinlineCoreConfig struct {
 	// Systems restricts the stream to these trunking-system names.
 	Systems []string
 	Log     *slog.Logger
+	// LogFile, when set, also writes every Core event (call ready, held
+	// offline, upload requested/ok/failed, discard, websocket up/down) to
+	// its own file, so a site operator can follow Core streaming without
+	// reading the daemon log. Rotates at LogFileMaxSizeMB (default 16).
+	LogFile          string
+	LogFileMaxSizeMB int
 }
 
 type thinlineStage int
@@ -103,6 +110,9 @@ type thinlineCore struct {
 	key      string
 	systemID int
 	log      *slog.Logger
+	// flog is the dedicated Core log (nil without ThinlineCoreConfig.LogFile).
+	flog  *slog.Logger
+	ffile io.Closer
 
 	http      *http.Client
 	newClient func() *http.Client
@@ -150,6 +160,15 @@ func NewThinlineCore(cfg ThinlineCoreConfig) (Backend, error) {
 		started:      make(map[string]*thinlineStarted),
 		held:         make(map[string]*thinlineHeldCall),
 	}
+	if cfg.LogFile != "" {
+		f, err := gtlog.OpenRotatingFile(cfg.LogFile, cfg.LogFileMaxSizeMB)
+		if err != nil {
+			return nil, fmt.Errorf("broadcast/thinline_core: log_file: %w", err)
+		}
+		b.ffile = f
+		b.flog = slog.New(slog.NewTextHandler(f, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	}
+	b.event(slog.LevelInfo, "thinline: core starting", "system", b.systemID, "url", b.base)
 	b.http = b.newClient()
 	b.dial = func(ctx context.Context, url string) (*websocket.Conn, error) {
 		d := websocket.Dialer{HandshakeTimeout: 10 * time.Second, Proxy: http.ProxyFromEnvironment}
@@ -166,6 +185,16 @@ func thinlineHTTPClient() *http.Client {
 }
 
 func (b *thinlineCore) Name() string { return b.name }
+
+// event logs a Core event to the daemon log and, when configured, the
+// dedicated Core log file.
+func (b *thinlineCore) event(level slog.Level, msg string, args ...any) {
+	args = append([]any{"backend", b.name}, args...)
+	b.log.Log(context.Background(), level, msg, args...)
+	if b.flog != nil {
+		b.flog.Log(context.Background(), level, msg, args...)
+	}
+}
 
 // callKey ties a call's start to its finished recording: the voice SDR
 // serial plus the call's start instant.
@@ -227,6 +256,7 @@ func (b *thinlineCore) CallEnded(ce trunking.CallEnd) {
 		}
 		delete(b.started, key)
 		b.mu.Unlock()
+		b.event(slog.LevelInfo, "thinline: call cancelled", "recordingId", st.id, "tg", st.grant.GroupID)
 		b.sendSimple("call.cancelled", st.id)
 	})
 }
@@ -266,7 +296,12 @@ func (b *thinlineCore) Send(ctx context.Context, c *Call) error {
 
 	b.ensureConnected()
 	if ready {
+		b.event(slog.LevelInfo, "thinline: call ready", "recordingId", id, "tg", c.Talkgroup,
+			"radio", c.Source, "durationMs", c.Duration().Milliseconds())
 		b.send(b.readyReport(id, c))
+	} else {
+		b.event(slog.LevelWarn, "thinline: holding call offline", "recordingId", id, "tg", c.Talkgroup,
+			"radio", c.Source, "durationMs", c.Duration().Milliseconds())
 	}
 	return nil
 }
@@ -280,6 +315,7 @@ func (b *thinlineCore) Close() error {
 		return nil
 	}
 	b.stopped = true
+	held, inProgress := len(b.held), len(b.started)
 	var cancelled []string
 	for k, st := range b.started {
 		if st.cancel != nil {
@@ -289,6 +325,7 @@ func (b *thinlineCore) Close() error {
 		delete(b.started, k)
 	}
 	b.mu.Unlock()
+	b.event(slog.LevelInfo, "thinline: core stopping", "held", held, "inProgress", inProgress)
 
 	for _, id := range cancelled {
 		b.sendSimple("call.cancelled", id)
@@ -307,6 +344,9 @@ func (b *thinlineCore) Close() error {
 		_ = conn.Close()
 	}
 	b.uploadAllHeld()
+	if b.ffile != nil {
+		_ = b.ffile.Close()
+	}
 	return nil
 }
 
@@ -347,8 +387,8 @@ func (b *thinlineCore) connect() {
 	if err != nil || b.stopped {
 		b.mu.Unlock()
 		if err != nil {
-			b.log.Warn("thinline: websocket connect failed; uploading held calls directly",
-				"backend", b.name, "url", url, "err", err)
+			b.event(slog.LevelWarn, "thinline: websocket connect failed; uploading held calls directly",
+				"url", url, "err", err)
 			b.uploadAllHeld()
 		} else {
 			_ = conn.Close()
@@ -383,10 +423,13 @@ func (b *thinlineCore) readLoop(conn *websocket.Conn) {
 			if b.conn == conn {
 				b.ready = true
 			}
+			held, inProgress := len(b.held), len(b.started)
 			b.mu.Unlock()
+			b.event(slog.LevelInfo, "thinline: websocket ready", "url", thinlineSocketURL(b.base),
+				"system", b.systemID, "held", held, "inProgress", inProgress)
 			b.announce()
 		case "error":
-			b.log.Warn("thinline: server refused the site", "backend", b.name, "error", msg.Error)
+			b.event(slog.LevelWarn, "thinline: server refused the site", "error", msg.Error)
 		case "command":
 			b.onCommand(msg.Command, msg.RecordingID, msg.ID)
 		}
@@ -395,7 +438,9 @@ func (b *thinlineCore) readLoop(conn *websocket.Conn) {
 
 func (b *thinlineCore) disconnected(conn *websocket.Conn, err error) {
 	b.mu.Lock()
+	wasReady := false
 	if b.conn == conn {
+		wasReady = b.ready
 		b.conn, b.ready = nil, false
 	}
 	stopped := b.stopped
@@ -404,7 +449,12 @@ func (b *thinlineCore) disconnected(conn *websocket.Conn, err error) {
 	if stopped {
 		return
 	}
-	b.log.Warn("thinline: websocket closed; uploading held calls directly", "backend", b.name, "err", err)
+	if wasReady {
+		b.event(slog.LevelWarn, "thinline: websocket disconnected; uploading held calls directly",
+			"url", thinlineSocketURL(b.base), "err", err)
+	} else {
+		b.event(slog.LevelWarn, "thinline: websocket closed before ready; uploading held calls directly", "err", err)
+	}
 	b.uploadAllHeld()
 }
 
@@ -441,6 +491,11 @@ func (b *thinlineCore) onCommand(command, recordingID string, id any) {
 	errText := ""
 	if !ok {
 		errText = "Recording is not held"
+		b.event(slog.LevelWarn, "thinline: "+command+" requested but not held", "recordingId", recordingID)
+	} else if command == "discardCall" {
+		b.event(slog.LevelInfo, "thinline: discard", "recordingId", recordingID, "tg", h.call.Talkgroup)
+	} else {
+		b.event(slog.LevelInfo, "thinline: upload requested", "recordingId", recordingID)
 	}
 	if ok && command == "uploadCall" {
 		go b.upload(recordingID)
@@ -477,11 +532,14 @@ func (b *thinlineCore) upload(recordingID string) {
 		h.stage = thinlineDone
 		delete(b.held, recordingID)
 		b.mu.Unlock()
+		b.event(slog.LevelInfo, "thinline: upload ok", "recordingId", recordingID, "tg", h.call.Talkgroup,
+			"radio", h.call.Source)
 		return
 	}
 	h.stage = thinlineHeld
 	b.mu.Unlock()
-	b.log.Warn("thinline: upload failed", "backend", b.name, "recordingId", recordingID, "err", err)
+	b.event(slog.LevelWarn, "thinline: upload gave up; notifying server", "recordingId", recordingID,
+		"tg", h.call.Talkgroup, "err", err)
 	// Tell the server, so it asks another site's copy.
 	b.sendSimple("call.uploadFailed", recordingID)
 }
@@ -532,6 +590,8 @@ func (b *thinlineCore) post(recordingID string, c *Call) error {
 		if err != nil {
 			cancel()
 			lastErr = err
+			b.event(slog.LevelWarn, "thinline: upload attempt failed", "recordingId", recordingID,
+				"tg", c.Talkgroup, "attempt", attempt, "of", thinlineUploadAttempts, "err", err)
 			if attempt > 1 {
 				client.CloseIdleConnections()
 			}
@@ -547,6 +607,8 @@ func (b *thinlineCore) post(recordingID string, c *Call) error {
 			return nil
 		}
 		lastErr = fmt.Errorf("HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(msg)))
+		b.event(slog.LevelWarn, "thinline: upload attempt failed", "recordingId", recordingID,
+			"tg", c.Talkgroup, "attempt", attempt, "of", thinlineUploadAttempts, "status", resp.StatusCode)
 		if resp.StatusCode < 500 {
 			break
 		}
