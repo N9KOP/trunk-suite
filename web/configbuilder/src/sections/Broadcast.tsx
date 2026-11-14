@@ -126,6 +126,8 @@ export function BroadcastSection() {
                 <TextField label="Site key" value={f.APIKey} onChange={(v) => setF({ ...f, APIKey: v })} help="The site control key, not an upload key." />
                 <NumberField label="System ID" value={f.SystemID} onChange={(v) => setF({ ...f, SystemID: v })} />
                 <TextField label="Systems" value={formatCommaList(f.Systems)} onChange={(v) => setF({ ...f, Systems: parseCommaList(v) })} help={SYSTEMS_HELP} />
+                <TextField label="Log file" value={f.LogFile ?? ""} onChange={(v) => setF({ ...f, LogFile: v })} help="Optional: every Core event also goes to this file (e.g. logs/thinline_core.log)." />
+                <NumberField label="Log file size (MB)" value={f.LogFileMaxSizeMB ?? 0} onChange={(v) => setF({ ...f, LogFileMaxSizeMB: v })} />
               </div>
             </div>
           )}

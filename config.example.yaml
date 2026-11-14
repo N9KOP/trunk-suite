@@ -1828,6 +1828,10 @@ broadcast:
   #     url: "https://thinline.example.org"
   #     api_key: "YOUR_THINLINE_SITE_CONTROL_KEY"
   #     system_id: 1
+  #     # Optional: every Core event (call ready, held offline, uploads,
+  #     # discards, websocket up/down) also goes to its own file.
+  #     log_file: "logs/thinline_core.log"
+  #     log_file_max_size_mb: 16
 
   # openmhz:
   #   - enabled: true

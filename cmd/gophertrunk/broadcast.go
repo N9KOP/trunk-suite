@@ -78,12 +78,14 @@ func buildBroadcastManager(cfg config.BroadcastConfig, normCfg config.NormalizeC
 			continue
 		}
 		b, err := broadcast.NewThinlineCore(broadcast.ThinlineCoreConfig{
-			Name:     f.Name,
-			URL:      f.URL,
-			APIKey:   f.APIKey,
-			SystemID: f.SystemID,
-			Systems:  f.Systems,
-			Log:      log,
+			Name:             f.Name,
+			URL:              f.URL,
+			APIKey:           f.APIKey,
+			SystemID:         f.SystemID,
+			Systems:          f.Systems,
+			Log:              log,
+			LogFile:          f.LogFile,
+			LogFileMaxSizeMB: f.LogFileMaxSizeMB,
 		})
 		if err != nil {
 			return nil, err
