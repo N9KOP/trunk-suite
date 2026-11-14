@@ -8,6 +8,65 @@ for tagged releases.
 ## [Unreleased]
 
 ### Added
+- **`squelch_open_ms` on scan-list channels (#1321).** How long a channel
+  must stay above its squelch before a call opens: the leading-edge twin of
+  `activity_debounce_ms`. On a channel with impulsive noise, a click above
+  `squelch_dbfs` used to open a hangtime-length "call" (a 1.5 s recording of
+  one tick); with e.g. `squelch_open_ms: 60` it doesn't, so the squelch can
+  sit lower and still hear weak signals. `0` (default) opens at once, as
+  before; at most 1000. On scan-list channels the first `squelch_open_ms`
+  of a transmission is not recorded, so keep it short (30–80 ms). Also on wideband conventional channels and in
+  `POST /api/v1/scanner/manual_tune`.
+- **`GET /api/v1/scanner` reports each scan-list channel's live level
+  (#1321):** `level_dbfs` (or `level_cn_db` on AM) beside the
+  `squelch_dbfs` / `squelch_cn_db` it is compared with, smoothed over about
+  200 ms, plus `level_at`. Set the squelch from it instead of computing the
+  in-channel power from the spectrum.
+
+### Fixed
+- **Removing a manual-tune channel, or locking out a channel, now leaves it
+  at once (#1321).** `DELETE /api/v1/scanner/manual_tune/<i>` on a channel
+  that was dwelling ended the call but left the scanner on the old
+  frequency with the old squelch until hangtime, and recordings kept coming
+  from it (with the squelch below the noise floor, until a restart); a
+  replacement manual tune was never tuned. Locking out a dwelling channel
+  had the same hole. Removing a manual-tune channel while it was still
+  being measured could also crash the daemon when a carrier appeared.
+- **`power` / `capture` say how to reach the network radio in your config
+  (#1230).** Both tools read no config file, so an `sdr.iio` (Pluto /
+  PlutoSky) or `sdr.rtl_tcp` entry did nothing and the run ended in a bare
+  "no SDRs found". When no local SDR is found, they now check the config the
+  daemon would load and name the flag for each network radio it lists
+  (`-iio 192.168.1.179`, `-rtltcp host:port`); a `sdr.soapy_remote` entry is
+  reported as daemon-only.
+- **TETRA: `tetra: SYSINFO cell parameters` no longer floods the log on
+  encrypted cells (#1350).** A cell with air-interface encryption alternates
+  one SYSINFO field between the hyperframe number and the CCK id, and every
+  alternation was read as a parameter change, so the INFO line was written on
+  every SYSINFO (about 1.2 M lines / 424 MB overnight on a 4-cell group). It
+  is now logged on the first decode, on a real parameter change, and when the
+  CCK id first appears or changes; the line keeps carrying the last CCK id.
+- **`recordings.write_raw: false` now applies to TETRA and DMR calls (#1321).**
+  The recorder wrote a `.raw` vocoder-frame sidecar for every TETRA (TMO and
+  DMO) and DMR call whatever the setting said, a leftover from before those
+  protocols had built-in vocoders. If you use those sidecars, set
+  `write_raw: true`. EDACS ProVoice, which has no built-in vocoder, still
+  always gets one.
+- **`gophertrunk decode` reports the real audio length (#1321).** The summary
+  line assumed 20 ms per frame, so a `tetra-acelp` decode (30 ms frames)
+  reported two thirds of the WAV's length. It now counts the samples written.
+
+### Documentation
+- **Airspy / HydraSDR `gain` values (#1321).** `docs/hardware.md` now explains
+  how the number is split across the LNA, mixer and VGA stages (filled in that
+  order, 30 per step, 1350 = maximum), and why a low value such as `400` leaves
+  the mixer and VGA at 0 and can lose the signal entirely. The `decode
+  -legacy-synthesis` help now says it affects the IMBE/AMBE vocoders only:
+  TETRA ACELP output is identical with or without it.
+
+## [v1.3.9] — 2026-11-12
+
+### Added
 - **`gophertrunk power -iio` and `gophertrunk capture -iio`** sweep or record
   from an ADALM-Pluto / PlutoSky through the iiod on the board, like `-rtltcp`
   for an rtl_tcp dongle (#1329, #1230). The one-shot tools read no config
